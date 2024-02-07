@@ -37,8 +37,8 @@ handler.setFormatter(ColorFormatter('%(asctime)s - %(levelname)s - %(message)s')
 
 # User choice for keeping original filename
 print(COLORS["BOLD"] + "There are two options for how output files can be named" + COLORS["RESET"] + "\n"
-"Option 1: YYYY-MM-DDTHHMMSS_primary/secondary_original-filename.jpeg\n"
-"Option 2: YYYY-MM-DDTHHMMSS_primary/secondary.jpeg")
+"Option 1: YYYY-MM-DDTHH-MM-SS_primary/secondary_original-filename.jpeg\n"
+"Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg")
 keep_original_filename = input(COLORS["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + COLORS["RESET"]).strip().lower()
 if keep_original_filename not in ['yes', 'no']:
     logging.error("Invalid input. Please start the script again and enter 'yes' or 'no'.")
@@ -127,10 +127,11 @@ for entry in data:
                 converted_files_count += 1
 
             # Adjust filename based on user's choice
+            time_str = taken_at.strftime("%Y-%m-%dT%H-%M-%S")  # ISO standard format with '-' instead of ':' for time
             if keep_original_filename == 'yes':
-                new_filename = taken_at.strftime("%Y-%m-%d_") + f"{role}_" + converted_path.name
+                new_filename = f"{time_str}_{role}_{converted_path.name}.jpg"
             else:
-                new_filename = taken_at.strftime("%Y-%m-%d_") + f"{role}.jpg"
+                new_filename = f"{time_str}_{role}.jpg"
             
             new_path = output_folder / new_filename
             new_path = get_unique_filename(new_path)  # Ensure the filename is unique
