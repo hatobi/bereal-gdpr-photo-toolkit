@@ -35,6 +35,15 @@ logger = logging.getLogger()
 handler = logger.handlers[0]  # Get the default handler installed by basicConfig
 handler.setFormatter(ColorFormatter('%(asctime)s - %(levelname)s - %(message)s'))
 
+# User choice for keeping original filename
+print(COLORS["BOLD"] + "There are two options for how output files can be named" + COLORS["RESET"] + "\n"
+"Option 1: YYYY-MM-DDTHHMMSS_primary/secondary_original-filename.jpeg\n"
+"Option 2: YYYY-MM-DDTHHMMSS_primary/secondary.jpeg")
+keep_original_filename = input(COLORS["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + COLORS["RESET"]).strip().lower()
+if keep_original_filename not in ['yes', 'no']:
+    logging.error("Invalid input. Please start the script again and enter 'yes' or 'no'.")
+    exit()
+
 # Initialize counters
 processed_files_count = 0
 converted_files_count = 0
@@ -116,9 +125,13 @@ for entry in data:
                 continue  # Skip this file if conversion failed
             if converted:
                 converted_files_count += 1
+
+            # Adjust filename based on user's choice
+            if keep_original_filename == 'yes':
+                new_filename = taken_at.strftime("%Y-%m-%d_") + f"{role}_" + converted_path.name
+            else:
+                new_filename = taken_at.strftime("%Y-%m-%d_") + f"{role}.jpg"
             
-            original_filename = converted_path.name
-            new_filename = taken_at.strftime("%Y-%m-%d_") + f"{role}_" + original_filename
             new_path = output_folder / new_filename
             new_path = get_unique_filename(new_path)  # Ensure the filename is unique
             
