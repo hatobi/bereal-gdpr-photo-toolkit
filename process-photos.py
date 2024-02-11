@@ -427,7 +427,7 @@ if create_combined_images == 'yes':
             converted_path, converted = convert_webp_to_jpg(combined_image_path)
             update_exif(converted_path, primary_taken_at, primary_location, primary_caption)
             logging.info(f"Metadata added to converted image.")
-            image_path_str = str(combined_image_path)
+            image_path_str = str(converted_path)
             update_iptc(image_path_str, primary_caption)
 
             if converted_path is None:
