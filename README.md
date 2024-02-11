@@ -21,7 +21,7 @@ pip install Pillow piexif
 
 
 # Running the Script
-Before running the script, make sure you have the required files. Place the script in the same directory as the JSON file named posts.json.
+Before running the script, make sure you have the required files. Place the script in the same directory as the JSON file named `posts.json`.
 
 To run the script, navigate to the directory containing the script:
 
@@ -52,7 +52,6 @@ The script processes images based on data provided in a JSON file obtained from 
     },
     "takenAt": "YYYY-MM-DDTHH:MM:SS.sssZ",
     "other": "data"
-  },
-  ...
+  }
 ]
 ```
