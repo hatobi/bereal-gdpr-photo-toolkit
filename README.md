@@ -35,6 +35,27 @@ Then execute it with Python:
 python process-photos.py
 ```
 
+# Features
+## Image Combine Logic
+
+The script includes an option to combine the primary and secondary images into a single image, simulating the appearance of original BeReal memories. Using Pillow, the secondary image is resized and positioned on top of the primary image, with its corners rounded and an outline added.
+
+The values used are:
+
+```python
+corner_radius = 60 # radius for the rounded corners
+outline_size = 7 # thickness of the black outline
+position = (55, 55) # margin to the borders
+```
+Adjust values if you want a different look or place the image in a different corner.
+
+## Advanced settings
+
+By default, the script converts images to JPEG, drops the original filenames from the converted filenames and creates the combined images. Users have the ability to customize how the script behaves through a series of prompts:
+
+1. Conversion to JPEG: Choose whether to convert WebP images to JPEG format.
+2. Filename Preservation: Decide whether to keep the original filename within the new filename structure.
+3. Image Combination: Opt in or out of combining primary and secondary images.
 
 # Data Requirement
 The script processes images based on data provided in a JSON file obtained from BeReal. The JSON file should follow this format:
