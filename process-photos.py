@@ -262,6 +262,7 @@ for entry in data:
             if convert_to_jpeg == 'yes' and converted:
                 converted_path.rename(new_path)  # Move and rename the file
                 update_exif(new_path, taken_at)  # Update EXIF data if conversion took place
+                logging.info(f"Metadata added to converted image.")
             else:
                 shutil.copy2(path, new_path) # Copy to new path
 
@@ -270,7 +271,7 @@ for entry in data:
             else:
                 secondary_images.append(new_path)
 
-            logging.info(f"Processed {role} image: {new_path}")
+            logging.info(f"Sucessfully processed {role} image.")
             processed_files_count += 1
             print("")
     except Exception as e:
@@ -292,11 +293,14 @@ if create_combined_images == 'yes':
 
         logging.info(f"Combined image saved: {combined_image_path}")
 
+        update_exif(combined_image_path, taken_at)
+        logging.info(f"Metadata added to combined image.")
+
         if convert_to_jpeg == 'yes':
             # Convert WebP to JPEG if necessary
             converted_path, converted = convert_webp_to_jpg(combined_image_path)
-            update_exif(combined_image_path, taken_at)  # Update EXIF data if conversion took place
-            update_exif(jpg_path, taken_at)  # Update EXIF data if conversion took place
+            update_exif(converted_path, taken_at)
+            logging.info(f"Metadata added to converted image.")
             if converted_path is None:
                 logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
         print("")
