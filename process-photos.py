@@ -1,13 +1,12 @@
 import json
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageOps, ExifTags
 import logging
 from pathlib import Path
 import piexif
 import os
 import time
 import shutil
-from pathlib import Path
 
 # ANSI escape codes for text styling
 STYLING = {
@@ -139,13 +138,68 @@ def convert_webp_to_jpg(image_path):
     else:
         return image_path, False
 
+# Helper function to convert latitude and longitude to EXIF-friendly format
+def _convert_to_degrees(value):
+    """Convert decimal latitude / longitude to degrees, minutes, seconds (DMS)"""
+    d = int(value)
+    m = int((value - d) * 60)
+    s = (value - d - m/60) * 3600.00
+
+    # Convert to tuples of (numerator, denominator)
+    d = (d, 1)
+    m = (m, 1)
+    s = (int(s * 100), 100)  # Assuming 2 decimal places for seconds for precision
+
+    return (d, m, s)
+
 # Function to update EXIF data
-def update_exif(image_path, datetime_original):
+def update_exif(image_path, datetime_original, location=None, caption=None):
     try:
         exif_dict = piexif.load(image_path.as_posix())
+
+        # Ensure the '0th' and 'Exif' directories are initialized
+        if '0th' not in exif_dict:
+            exif_dict['0th'] = {}
+        if 'Exif' not in exif_dict:
+            exif_dict['Exif'] = {}
+
+        # For debugging: Load and log the updated EXIF data
+        #logging.info(f"Original EXIF data for {image_path}: {exif_dict}")
+
+        # Update datetime original
         exif_dict['Exif'][piexif.ExifIFD.DateTimeOriginal] = datetime_original.strftime("%Y:%m:%d %H:%M:%S")
+        datetime_print = datetime_original.strftime("%Y:%m:%d %H:%M:%S")
+        logging.info(f"Found datetime: {datetime_print}")
+        logging.info(f"Added capture date and time.")
+
+        # Update GPS information if location is provided
+        if location and 'latitude' in location and 'longitude' in location:
+            logging.info(f"Found location: {location}")
+            gps_ifd = {
+                piexif.GPSIFD.GPSLatitudeRef: 'N' if location['latitude'] >= 0 else 'S',
+                piexif.GPSIFD.GPSLatitude: _convert_to_degrees(abs(location['latitude'])),
+                piexif.GPSIFD.GPSLongitudeRef: 'E' if location['longitude'] >= 0 else 'W',
+                piexif.GPSIFD.GPSLongitude: _convert_to_degrees(abs(location['longitude'])),
+            }
+            exif_dict['GPS'] = gps_ifd
+            logging.info(f"Added GPS location: {gps_ifd}")
+
+        # Transfer caption as title in ImageDescription
+        if caption:
+            logging.info(f"Found caption: {caption}")
+            #exif_dict[piexif.ImageIFD.ImageDescription] = caption.encode('utf-8')
+            exif_dict['0th'][piexif.ImageIFD.ImageDescription] = caption.encode('utf-8')
+            logging.info(f"Updated title with caption.")
+
+        
         exif_bytes = piexif.dump(exif_dict)
         piexif.insert(exif_bytes, image_path.as_posix())
+        logging.info(f"Updated EXIF data for {image_path}.")
+
+        # For debugging: Load and log the updated EXIF data
+        #updated_exif_dict = piexif.load(image_path.as_posix())
+        #logging.info(f"Updated EXIF data for {image_path}: {updated_exif_dict}")
+        
     except Exception as e:
         logging.error(f"Failed to update EXIF data for {image_path}: {e}")
 
@@ -228,6 +282,9 @@ for entry in data:
         secondary_path = photo_folder / secondary_filename
 
         taken_at = datetime.strptime(entry['takenAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        location = entry.get('location')  # This will be None if 'location' is not present
+        caption = entry.get('caption')  # This will be None if 'caption' is not present
+
         
         for path, role in [(primary_path, 'primary'), (secondary_path, 'secondary')]:
             logging.info(f"Found image: {path}")
@@ -261,13 +318,18 @@ for entry in data:
             
             if convert_to_jpeg == 'yes' and converted:
                 converted_path.rename(new_path)  # Move and rename the file
-                update_exif(new_path, taken_at)  # Update EXIF data if conversion took place
+                update_exif(new_path, taken_at, location, caption)  # Update EXIF data if conversion took place
                 logging.info(f"Metadata added to converted image.")
             else:
                 shutil.copy2(path, new_path) # Copy to new path
 
             if role == 'primary':
-                primary_images.append(new_path)
+                primary_images.append({
+                    'path': new_path,
+                    'taken_at': taken_at,
+                    'location': location,
+                    'caption': caption
+                })
             else:
                 secondary_images.append(new_path)
 
@@ -283,13 +345,18 @@ if create_combined_images == 'yes':
     output_folder_combined.mkdir(parents=True, exist_ok=True)
 
     for primary_path, secondary_path in zip(primary_images, secondary_images):
-        # Extract timestamp from one of the images for consistency
-        timestamp = primary_path.stem.split('_')[0]
-        taken_at = datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%S")
+        # Extract metadata from one of the images for consistency
+        #taken_at = datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%S")
+        primary_new_path = primary_path['path']
+        primary_taken_at = primary_path['taken_at']
+        primary_location = primary_path['location']
+        primary_caption = primary_path['caption']
+
+        timestamp = primary_new_path.stem.split('_')[0]
 
         # Construct the new file name for the combined image
         combined_filename = f"{timestamp}_combined.webp"
-        combined_image = combine_images_with_resizing(primary_path, secondary_path)
+        combined_image = combine_images_with_resizing(primary_new_path, secondary_path)
         
         combined_image_path = output_folder_combined / (combined_filename)
         combined_image.save(combined_image_path, 'JPEG')
@@ -297,13 +364,13 @@ if create_combined_images == 'yes':
 
         logging.info(f"Combined image saved: {combined_image_path}")
 
-        update_exif(combined_image_path, taken_at)
+        update_exif(combined_image_path, primary_taken_at, primary_location, primary_caption)
         logging.info(f"Metadata added to combined image.")
 
         if convert_to_jpeg == 'yes':
             # Convert WebP to JPEG if necessary
             converted_path, converted = convert_webp_to_jpg(combined_image_path)
-            update_exif(converted_path, taken_at)
+            update_exif(converted_path, primary_taken_at, primary_location, primary_caption)
             logging.info(f"Metadata added to converted image.")
             if converted_path is None:
                 logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
