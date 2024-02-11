@@ -7,9 +7,10 @@ import piexif
 import os
 import time
 import shutil
+from pathlib import Path
 
 # ANSI escape codes for text styling
-COLORS = {
+STYLING = {
     "GREEN": "\033[92m",
     "RED": "\033[91m",
     "BLUE": "\033[94m",
@@ -22,11 +23,11 @@ class ColorFormatter(logging.Formatter):
     def format(self, record):
         message = super().format(record)
         if record.levelno == logging.INFO and "Finished processing" not in record.msg:
-            message = COLORS["GREEN"] + message + COLORS["RESET"]
+            message = STYLING["GREEN"] + message + STYLING["RESET"]
         elif record.levelno == logging.ERROR:
-            message = COLORS["RED"] + message + COLORS["RESET"]
+            message = STYLING["RED"] + message + STYLING["RESET"]
         elif "Finished processing" in record.msg:  # Identify the summary message
-            message = COLORS["BLUE"] + COLORS["BOLD"] + message + COLORS["RESET"]
+            message = STYLING["BLUE"] + STYLING["BOLD"] + message + STYLING["RESET"]
         return message
 
 # Setup basic logging
@@ -37,55 +38,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 handler = logger.handlers[0]  # Get the default handler installed by basicConfig
 handler.setFormatter(ColorFormatter('%(asctime)s - %(levelname)s - %(message)s'))
-
-# Settings
-## Initial choice for accessing advanced settings
-print(COLORS["BOLD"] + "\nDo you want to access advanced settings or run with default settings?" + COLORS["RESET"])
-print("Default settings are:\n"
-"1. Copied images are converted from WebP to JPEG\n"
-"2. Converted images' filenames contain the original filename\n"
-"3. Combined images are created on top of converted, singular images")
-advanced_settings = input("\nEnter " + COLORS["BOLD"] + "'yes'" + COLORS["RESET"] + "for advanced settings or press any key to continue with default settings: ").strip().lower()
-
-## Default responses
-convert_to_jpeg = 'yes'
-keep_original_filename = 'yes'
-create_combined_images = 'yes'
-
-## Proceed with advanced settings if chosen
-if advanced_settings == 'yes':
-    # User choice for converting to JPEG
-    convert_to_jpeg = None
-    while convert_to_jpeg not in ['yes', 'no']:
-        convert_to_jpeg = input(COLORS["BOLD"] + "\n1. Do you want to convert images from WebP to JPEG? (yes/no): " + COLORS["RESET"]).strip().lower()
-        if convert_to_jpeg == 'no':
-            print("Your images will not be converted. No additional metadata will be added.")
-        if convert_to_jpeg not in ['yes', 'no']:
-            logging.error("Invalid input. Please enter 'yes' or 'no'.")
-
-    # User choice for keeping original filename
-    print(COLORS["BOLD"] + "\n2. There are two options for how output files can be named" + COLORS["RESET"] + "\n"
-    "Option 1: YYYY-MM-DDTHH-MM-SS_primary/secondary_original-filename.jpeg\n"
-    "Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg\n"
-    "This will only influence the naming scheme of singular images.")
-    keep_original_filename = None
-    while keep_original_filename not in ['yes', 'no']:
-        keep_original_filename = input(COLORS["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + COLORS["RESET"]).strip().lower()
-        if keep_original_filename not in ['yes', 'no']:
-            logging.error("Invalid input. Please enter 'yes' or 'no'.")
-
-    # User choice for creating combined images
-    create_combined_images = None
-    while create_combined_images not in ['yes', 'no']:
-        create_combined_images = input(COLORS["BOLD"] + "\n3. Do you want to create combined images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
-        if create_combined_images not in ['yes', 'no']:
-            logging.error("Invalid input. Please enter 'yes' or 'no'.")
-
-if convert_to_jpeg == 'no' and create_combined_images == 'no':
-    print("You chose not to convert images nor do you want to output combined images.\n"
-    "The script will therefore only copy images to a new folder and rename them according to your choice without adding metadata or creating new files.\n"
-    "Script will continue to run in 5 seconds.")
-    #time.sleep(10)
 
 # Initialize counters
 processed_files_count = 0
@@ -100,10 +52,70 @@ output_folder_combined = Path('Photos/post/__combined')
 output_folder.mkdir(parents=True, exist_ok=True)  # Create the output folder if it doesn't exist
 
 # Print the paths
-print(COLORS["BOLD"] + "\nThe following paths are set for the input and output files:" + COLORS["RESET"])
+print(STYLING["BOLD"] + "\nThe following paths are set for the input and output files:" + STYLING["RESET"])
 print(f"Photo folder: {photo_folder}")
-print(f"Output folder: {output_folder}")
-print("Deduplication active. No files will be overwritten or deleted.\n")
+print(f"Output folder for singular images: {output_folder}")
+print(f"Output folder for combined images: {output_folder_combined}")
+#print("\nDeduplication is active. No files will be overwritten or deleted.")
+print("")
+
+# Function to count number of input files
+def count_files_in_folder(folder_path):
+    folder = Path(folder_path)
+    file_count = len(list(folder.glob('*.webp')))
+    return file_count
+
+number_of_files = count_files_in_folder(photo_folder)
+print(f"Number of WebP-files in {photo_folder}: {number_of_files}")
+
+# Settings
+## Initial choice for accessing advanced settings
+print(STYLING["BOLD"] + "\nDo you want to access advanced settings or run with default settings?" + STYLING["RESET"])
+print("Default settings are:\n"
+"1. Copied images are converted from WebP to JPEG\n"
+"2. Converted images' filenames contain the original filename\n"
+"3. Combined images are created on top of converted, singular images")
+advanced_settings = input("\nEnter " + STYLING["BOLD"] + "'yes'" + STYLING["RESET"] + "for advanced settings or press any key to continue with default settings: ").strip().lower()
+
+## Default responses
+convert_to_jpeg = 'yes'
+keep_original_filename = 'yes'
+create_combined_images = 'yes'
+
+## Proceed with advanced settings if chosen
+if advanced_settings == 'yes':
+    # User choice for converting to JPEG
+    convert_to_jpeg = None
+    while convert_to_jpeg not in ['yes', 'no']:
+        convert_to_jpeg = input(STYLING["BOLD"] + "\n1. Do you want to convert images from WebP to JPEG? (yes/no): " + STYLING["RESET"]).strip().lower()
+        if convert_to_jpeg == 'no':
+            print("Your images will not be converted. No additional metadata will be added.")
+        if convert_to_jpeg not in ['yes', 'no']:
+            logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
+    # User choice for keeping original filename
+    print(STYLING["BOLD"] + "\n2. There are two options for how output files can be named" + STYLING["RESET"] + "\n"
+    "Option 1: YYYY-MM-DDTHH-MM-SS_primary/secondary_original-filename.jpeg\n"
+    "Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg\n"
+    "This will only influence the naming scheme of singular images.")
+    keep_original_filename = None
+    while keep_original_filename not in ['yes', 'no']:
+        keep_original_filename = input(STYLING["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + STYLING["RESET"]).strip().lower()
+        if keep_original_filename not in ['yes', 'no']:
+            logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
+    # User choice for creating combined images
+    create_combined_images = None
+    while create_combined_images not in ['yes', 'no']:
+        create_combined_images = input(STYLING["BOLD"] + "\n3. Do you want to create combined images like the original BeReal memories? (yes/no): " + STYLING["RESET"]).strip().lower()
+        if create_combined_images not in ['yes', 'no']:
+            logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
+if convert_to_jpeg == 'no' and create_combined_images == 'no':
+    print("You chose not to convert images nor do you want to output combined images.\n"
+    "The script will therefore only copy images to a new folder and rename them according to your choice without adding metadata or creating new files.\n"
+    "Script will continue to run in 5 seconds.")
+    #time.sleep(10)
 
 # Function to convert WEBP to JPEG
 def convert_webp_to_jpg(image_path):
@@ -275,4 +287,4 @@ for entry in data:
         logging.error(f"Error processing entry {entry}: {e}")
 
 # Summary
-logging.info(f"Finished processing. Total files processed: {processed_files_count}. Files converted: {converted_files_count}. Files skipped: {skipped_files_count}.")
+logging.info(f"Finished processing.\nTotal files processed: {processed_files_count}\nFiles converted: {converted_files_count}\nFiles skipped: {skipped_files_count}\nFiles combined: {combined_files_count}")
