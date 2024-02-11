@@ -243,6 +243,8 @@ for entry in data:
 
             # Adjust filename based on user's choice
             time_str = taken_at.strftime("%Y-%m-%dT%H-%M-%S")  # ISO standard format with '-' instead of ':' for time
+            original_filename_without_extension = Path(path).stem  # Extract original filename without extension
+            
             if convert_to_jpeg == 'yes':
                 if keep_original_filename == 'yes':
                     new_filename = f"{time_str}_{role}_{converted_path.name}"
@@ -250,7 +252,7 @@ for entry in data:
                     new_filename = f"{time_str}_{role}.jpg"
             else:
                 if keep_original_filename == 'yes':
-                    new_filename = f"{time_str}_{role}_{converted_path.name}.webp"
+                    new_filename = f"{time_str}_{role}_{original_filename_without_extension}.webp"
                 else:
                     new_filename = f"{time_str}_{role}.webp"
             
@@ -293,6 +295,8 @@ if create_combined_images == 'yes':
         if convert_to_jpeg == 'yes':
             # Convert WebP to JPEG if necessary
             converted_path, converted = convert_webp_to_jpg(combined_image_path)
+            update_exif(combined_image_path, taken_at)  # Update EXIF data if conversion took place
+            update_exif(jpg_path, taken_at)  # Update EXIF data if conversion took place
             if converted_path is None:
                 logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
         print("")
