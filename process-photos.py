@@ -36,21 +36,45 @@ logger = logging.getLogger()
 handler = logger.handlers[0]  # Get the default handler installed by basicConfig
 handler.setFormatter(ColorFormatter('%(asctime)s - %(levelname)s - %(message)s'))
 
-# User choice for keeping original filename
-print(COLORS["BOLD"] + "There are two options for how output files can be named" + COLORS["RESET"] + "\n"
-"Option 1: YYYY-MM-DDTHH-MM-SS_primary/secondary_original-filename.jpeg\n"
-"Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg")
-keep_original_filename = input(COLORS["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + COLORS["RESET"]).strip().lower()
-if keep_original_filename not in ['yes', 'no']:
-    logging.error("Invalid input. Please start the script again and enter 'yes' or 'no'.")
-    exit()
+# Settings
+## Initial choice for accessing advanced settings
+print(COLORS["BOLD"] + "Do you want to access advanced settings or run with default settings?" + COLORS["RESET"])
+print("Default settings are:\n"
+"1. Copied images are converted from WebP to JPEG\n"
+"2. Converted images' filenames contain the original filename\n"
+"3. Merged images are created on top of converted, singular images")
+advanced_settings = input("Enter " + COLORS["BOLD"] + "'yes'" + COLORS["RESET"] + "for advanced settings or "  + COLORS["BOLD"] + "'no'" + COLORS["RESET"] + " to use default settings: " + COLORS["RESET"]).strip().lower()
 
-# User choice for creating merged images
-create_merged_images = None
-while create_merged_images not in ['yes', 'no']:
-    create_merged_images = input(COLORS["BOLD"] + "3. Do you want to create merged images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
-    if create_merged_images not in ['yes', 'no']:
-        logging.error("Invalid input. Please enter 'yes' or 'no'.")
+## Default responses
+convert_to_jpeg = 'yes'
+keep_original_filename = 'yes'
+create_merged_images = 'yes'
+
+## Proceed with advanced settings if chosen
+if advanced_settings == 'yes':
+    # User choice for converting to JPEG
+    convert_to_jpeg = None
+    while convert_to_jpeg not in ['yes', 'no']:
+        convert_to_jpeg = input(COLORS["BOLD"] + "1. Do you want to convert images from WebP to JPEG? (yes/no): " + COLORS["RESET"]).strip().lower()
+        if convert_to_jpeg not in ['yes', 'no']:
+            logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
+    # User choice for keeping original filename
+    print(COLORS["BOLD"] + "2. There are two options for how output files can be named" + COLORS["RESET"] + "\n"
+    "Option 1: YYYY-MM-DDTHH-MM-SS_primary/secondary_original-filename.jpeg\n"
+    "Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg")
+    keep_original_filename = None
+    while keep_original_filename not in ['yes', 'no']:
+        keep_original_filename = input(COLORS["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + COLORS["RESET"]).strip().lower()
+        if keep_original_filename not in ['yes', 'no']:
+            logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
+    # User choice for creating merged images
+    create_merged_images = None
+    while create_merged_images not in ['yes', 'no']:
+        create_merged_images = input(COLORS["BOLD"] + "3. Do you want to create merged images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
+        if create_merged_images not in ['yes', 'no']:
+            logging.error("Invalid input. Please enter 'yes' or 'no'.")
 
 # Initialize counters
 processed_files_count = 0
