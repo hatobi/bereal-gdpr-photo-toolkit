@@ -247,7 +247,7 @@ for entry in data:
                 if keep_original_filename == 'yes':
                     new_filename = f"{time_str}_{role}_{converted_path.name}"
                 else:
-                    new_filename = f"{time_str}_{role}"
+                    new_filename = f"{time_str}_{role}.jpg"
             else:
                 if keep_original_filename == 'yes':
                     new_filename = f"{time_str}_{role}_{converted_path.name}.webp"
