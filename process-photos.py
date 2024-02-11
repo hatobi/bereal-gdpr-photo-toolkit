@@ -40,12 +40,12 @@ handler.setFormatter(ColorFormatter('%(asctime)s - %(levelname)s - %(message)s')
 
 # Settings
 ## Initial choice for accessing advanced settings
-print(COLORS["BOLD"] + "Do you want to access advanced settings or run with default settings?" + COLORS["RESET"])
+print(COLORS["BOLD"] + "\nDo you want to access advanced settings or run with default settings?" + COLORS["RESET"])
 print("Default settings are:\n"
 "1. Copied images are converted from WebP to JPEG\n"
 "2. Converted images' filenames contain the original filename\n"
 "3. Combined images are created on top of converted, singular images")
-advanced_settings = input("Enter " + COLORS["BOLD"] + "'yes'" + COLORS["RESET"] + "for advanced settings or "  + COLORS["BOLD"] + "'no'" + COLORS["RESET"] + " to use default settings: " + COLORS["RESET"]).strip().lower()
+advanced_settings = input("\nEnter " + COLORS["BOLD"] + "'yes'" + COLORS["RESET"] + "for advanced settings or press any key to continue with default settings: ").strip().lower()
 
 ## Default responses
 convert_to_jpeg = 'yes'
@@ -99,10 +99,11 @@ output_folder = Path('Photos/post/__processed')
 output_folder_combined = Path('Photos/post/__combined')
 output_folder.mkdir(parents=True, exist_ok=True)  # Create the output folder if it doesn't exist
 
-# Log the paths
-logging.info(f"Photo folder: {photo_folder}")
-logging.info(f"Output folder: {output_folder}")
-logging.info("Deduplication active. No files will be overwritten or deleted.")
+# Print the paths
+print(COLORS["BOLD"] + "\nThe following paths are set for the input and output files:" + COLORS["RESET"])
+print(f"Photo folder: {photo_folder}")
+print(f"Output folder: {output_folder}")
+print("Deduplication active. No files will be overwritten or deleted.\n")
 
 # Function to convert WEBP to JPEG
 def convert_webp_to_jpg(image_path):
