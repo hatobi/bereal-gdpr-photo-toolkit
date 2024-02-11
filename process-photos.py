@@ -1,9 +1,10 @@
 import json
 from datetime import datetime
-from PIL import Image
+from PIL import Image, ImageDraw, ImageOps
 import logging
 from pathlib import Path
 import piexif
+import os
 
 # ANSI escape codes for text styling
 COLORS = {
@@ -44,6 +45,13 @@ if keep_original_filename not in ['yes', 'no']:
     logging.error("Invalid input. Please start the script again and enter 'yes' or 'no'.")
     exit()
 
+# User choice for creating merged images
+create_merged_images = None
+while create_merged_images not in ['yes', 'no']:
+    create_merged_images = input(COLORS["BOLD"] + "3. Do you want to create merged images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
+    if create_merged_images not in ['yes', 'no']:
+        logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
 # Initialize counters
 processed_files_count = 0
 converted_files_count = 0
@@ -52,6 +60,7 @@ skipped_files_count = 0
 # Define paths using pathlib
 photo_folder = Path('Photos/post/')
 output_folder = Path('Photos/post/__processed')
+output_folder_merged = Path('Photos/post/__merged')
 output_folder.mkdir(parents=True, exist_ok=True)  # Create the output folder if it doesn't exist
 
 # Log the paths
@@ -97,6 +106,53 @@ def get_unique_filename(path):
             counter += 1
         return path
 
+def merge_images_with_resizing(primary_path, secondary_path):
+    # Parameters for rounded corners, outline and position
+    corner_radius = 60
+    outline_size = 7
+    position = (55, 55)
+
+    # Load primary and secondary images
+    primary_image = Image.open(primary_path)
+    secondary_image = Image.open(secondary_path)
+
+    # Resize the secondary image using LANCZOS resampling for better quality
+    scaling_factor = 1/3.33333333  
+    width, height = secondary_image.size
+    new_width = int(width * scaling_factor)
+    new_height = int(height * scaling_factor)
+    resized_secondary_image = secondary_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+    # Ensure secondary image has an alpha channel for transparency
+    if resized_secondary_image.mode != 'RGBA':
+        resized_secondary_image = resized_secondary_image.convert('RGBA')
+
+    # Create mask for rounded corners
+    mask = Image.new('L', (new_width, new_height), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle((0, 0, new_width, new_height), corner_radius, fill=255)
+
+    # Apply the rounded corners mask to the secondary image
+    resized_secondary_image.putalpha(mask)
+
+    # Create a new blank image with the size of the primary image
+    combined_image = Image.new("RGB", primary_image.size)
+    combined_image.paste(primary_image, (0, 0))    
+
+    # Draw the black outline with rounded corners directly on the combined image
+    outline_layer = Image.new('RGBA', combined_image.size, (0, 0, 0, 0))  # Transparent layer for drawing the outline
+    draw = ImageDraw.Draw(outline_layer)
+    outline_box = [position[0] - outline_size, position[1] - outline_size, position[0] + new_width + outline_size, position[1] + new_height + outline_size]
+    draw.rounded_rectangle(outline_box, corner_radius + outline_size, fill=(0, 0, 0, 255))
+
+    # Merge the outline layer with the combined image
+    combined_image.paste(outline_layer, (0, 0), outline_layer)
+
+    # Paste the secondary image onto the combined image using its alpha channel as the mask
+    combined_image.paste(resized_secondary_image, position, resized_secondary_image)
+
+    return combined_image
+
 # Load the JSON file
 try:
     with open('posts.json') as f:
@@ -136,6 +192,20 @@ for entry in data:
             new_path = output_folder / new_filename
             new_path = get_unique_filename(new_path)  # Ensure the filename is unique
             
+            # Create merged images if user chose 'yes'
+            if create_merged_images == 'yes':
+                #Create output folder if it doesn't exist
+                output_folder_merged.mkdir(parents=True, exist_ok=True)
+
+                # Construct the new file name for the combined image
+                combined_filename = taken_at.strftime("%Y-%m-%d_") + "combined_" + os.path.basename(primary_path)
+                combined_image = merge_images_with_resizing(primary_path, secondary_path)
+        
+                # Save the combined image
+                combined_image.save(os.path.join(output_folder_merged, combined_filename))
+
+
+
             converted_path.rename(new_path)  # Move and rename the file
             update_exif(new_path, taken_at)  # Update EXIF data
             
