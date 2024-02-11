@@ -44,13 +44,13 @@ print(COLORS["BOLD"] + "Do you want to access advanced settings or run with defa
 print("Default settings are:\n"
 "1. Copied images are converted from WebP to JPEG\n"
 "2. Converted images' filenames contain the original filename\n"
-"3. Merged images are created on top of converted, singular images")
+"3. Combined images are created on top of converted, singular images")
 advanced_settings = input("Enter " + COLORS["BOLD"] + "'yes'" + COLORS["RESET"] + "for advanced settings or "  + COLORS["BOLD"] + "'no'" + COLORS["RESET"] + " to use default settings: " + COLORS["RESET"]).strip().lower()
 
 ## Default responses
 convert_to_jpeg = 'yes'
 keep_original_filename = 'yes'
-create_merged_images = 'yes'
+create_combined_images = 'yes'
 
 ## Proceed with advanced settings if chosen
 if advanced_settings == 'yes':
@@ -74,15 +74,15 @@ if advanced_settings == 'yes':
         if keep_original_filename not in ['yes', 'no']:
             logging.error("Invalid input. Please enter 'yes' or 'no'.")
 
-    # User choice for creating merged images
-    create_merged_images = None
-    while create_merged_images not in ['yes', 'no']:
-        create_merged_images = input(COLORS["BOLD"] + "\n3. Do you want to create merged images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
-        if create_merged_images not in ['yes', 'no']:
+    # User choice for creating combined images
+    create_combined_images = None
+    while create_combined_images not in ['yes', 'no']:
+        create_combined_images = input(COLORS["BOLD"] + "\n3. Do you want to create combined images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
+        if create_combined_images not in ['yes', 'no']:
             logging.error("Invalid input. Please enter 'yes' or 'no'.")
 
-if convert_to_jpeg == 'no' and create_merged_images == 'no':
-    print("You chose not to convert images nor do you want to output merged images.\n"
+if convert_to_jpeg == 'no' and create_combined_images == 'no':
+    print("You chose not to convert images nor do you want to output combined images.\n"
     "The script will therefore only copy images to a new folder and rename them according to your choice without adding metadata or creating new files.\n"
     "Script will continue to run in 5 seconds.")
     #time.sleep(10)
@@ -90,13 +90,13 @@ if convert_to_jpeg == 'no' and create_merged_images == 'no':
 # Initialize counters
 processed_files_count = 0
 converted_files_count = 0
-merged_files_count = 0
+combined_files_count = 0
 skipped_files_count = 0
 
 # Define paths using pathlib
 photo_folder = Path('Photos/post/')
 output_folder = Path('Photos/post/__processed')
-output_folder_merged = Path('Photos/post/__merged')
+output_folder_combined = Path('Photos/post/__combined')
 output_folder.mkdir(parents=True, exist_ok=True)  # Create the output folder if it doesn't exist
 
 # Log the paths
@@ -142,7 +142,7 @@ def get_unique_filename(path):
             counter += 1
         return path
 
-def merge_images_with_resizing(primary_path, secondary_path):
+def combine_images_with_resizing(primary_path, secondary_path):
     # Parameters for rounded corners, outline and position
     corner_radius = 60
     outline_size = 7
@@ -242,30 +242,30 @@ for entry in data:
             else:
                 shutil.copy2(path, new_path) # Copy to new path
 
-            # Create merged images if user chose 'yes'
-            if create_merged_images == 'yes':
+            # Create combined images if user chose 'yes'
+            if create_combined_images == 'yes':
                 #Create output folder if it doesn't exist
-                output_folder_merged.mkdir(parents=True, exist_ok=True)
+                output_folder_combined.mkdir(parents=True, exist_ok=True)
 
                 # Construct the new file name for the combined image
                 combined_filename = taken_at.strftime("%Y-%m-%dT%H-%M-%S") + "_combined_" + os.path.basename(primary_path)
-                combined_image = merge_images_with_resizing(primary_path, secondary_path)
+                combined_image = combine_images_with_resizing(primary_path, secondary_path)
         
                 # Save the combined image
-                #combined_image.save(os.path.join(output_folder_merged, combined_filename))
+                #combined_image.save(os.path.join(output_folder_combined, combined_filename))
                 
-                combined_image_path = output_folder_merged / (combined_filename)
+                combined_image_path = output_folder_combined / (combined_filename)
                 combined_image.save(combined_image_path)
-                merged_files_count += 1
+                combined_files_count += 1
 
                 if convert_to_jpeg == 'yes':
                     # Convert WebP to JPEG if necessary
                     converted_path, converted = convert_webp_to_jpg(combined_image_path)
                     if converted_path is None:
-                        logging.error(f"Failed to convert merged image to JPEG: {combined_image_path}")
+                        logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
                     else:
                         if converted:
-                            logging.info(f"Converted merged image to JPEG: {converted_path}")
+                            logging.info(f"Converted combined image to JPEG: {converted_path}")
 
             logging.info(f"Processed {role} image: {new_path}")
             processed_files_count += 1
