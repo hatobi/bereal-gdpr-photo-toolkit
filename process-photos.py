@@ -5,6 +5,8 @@ import logging
 from pathlib import Path
 import piexif
 import os
+import time
+import shutil
 
 # ANSI escape codes for text styling
 COLORS = {
@@ -55,14 +57,17 @@ if advanced_settings == 'yes':
     # User choice for converting to JPEG
     convert_to_jpeg = None
     while convert_to_jpeg not in ['yes', 'no']:
-        convert_to_jpeg = input(COLORS["BOLD"] + "1. Do you want to convert images from WebP to JPEG? (yes/no): " + COLORS["RESET"]).strip().lower()
+        convert_to_jpeg = input(COLORS["BOLD"] + "\n1. Do you want to convert images from WebP to JPEG? (yes/no): " + COLORS["RESET"]).strip().lower()
+        if convert_to_jpeg == 'no':
+            print("Your images will not be converted. No additional metadata will be added.")
         if convert_to_jpeg not in ['yes', 'no']:
             logging.error("Invalid input. Please enter 'yes' or 'no'.")
 
     # User choice for keeping original filename
-    print(COLORS["BOLD"] + "2. There are two options for how output files can be named" + COLORS["RESET"] + "\n"
+    print(COLORS["BOLD"] + "\n2. There are two options for how output files can be named" + COLORS["RESET"] + "\n"
     "Option 1: YYYY-MM-DDTHH-MM-SS_primary/secondary_original-filename.jpeg\n"
-    "Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg")
+    "Option 2: YYYY-MM-DDTHH-MM-SS_primary/secondary.jpeg\n"
+    "This will only influence the naming scheme of singular images.")
     keep_original_filename = None
     while keep_original_filename not in ['yes', 'no']:
         keep_original_filename = input(COLORS["BOLD"] + "Do you want to keep the original filename in the renamed file? (yes/no): " + COLORS["RESET"]).strip().lower()
@@ -72,13 +77,20 @@ if advanced_settings == 'yes':
     # User choice for creating merged images
     create_merged_images = None
     while create_merged_images not in ['yes', 'no']:
-        create_merged_images = input(COLORS["BOLD"] + "3. Do you want to create merged images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
+        create_merged_images = input(COLORS["BOLD"] + "\n3. Do you want to create merged images like the original BeReal memories? (yes/no): " + COLORS["RESET"]).strip().lower()
         if create_merged_images not in ['yes', 'no']:
             logging.error("Invalid input. Please enter 'yes' or 'no'.")
+
+if convert_to_jpeg == 'no' and create_merged_images == 'no':
+    print("You chose not to convert images nor do you want to output merged images.\n"
+    "The script will therefore only copy images to a new folder and rename them according to your choice without adding metadata or creating new files.\n"
+    "Script will continue to run in 5 seconds.")
+    #time.sleep(10)
 
 # Initialize counters
 processed_files_count = 0
 converted_files_count = 0
+merged_files_count = 0
 skipped_files_count = 0
 
 # Define paths using pathlib
@@ -198,41 +210,63 @@ for entry in data:
         taken_at = datetime.strptime(entry['takenAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
         
         for path, role in [(primary_path, 'primary'), (secondary_path, 'secondary')]:
-            # Convert WebP to JPEG if necessary
-            converted_path, converted = convert_webp_to_jpg(path)
-            if converted_path is None:
-                skipped_files_count += 1
-                continue  # Skip this file if conversion failed
-            if converted:
-                converted_files_count += 1
+            # Check if conversion to JPEG is enabled by the user
+            if convert_to_jpeg == 'yes':
+                # Convert WebP to JPEG if necessary
+                converted_path, converted = convert_webp_to_jpg(path)
+                if converted_path is None:
+                    skipped_files_count += 1
+                    continue  # Skip this file if conversion failed
+                if converted:
+                    converted_files_count += 1
 
             # Adjust filename based on user's choice
             time_str = taken_at.strftime("%Y-%m-%dT%H-%M-%S")  # ISO standard format with '-' instead of ':' for time
-            if keep_original_filename == 'yes':
-                new_filename = f"{time_str}_{role}_{converted_path.name}.jpg"
+            if convert_to_jpeg == 'yes':
+                if keep_original_filename == 'yes':
+                    new_filename = f"{time_str}_{role}_{converted_path.name}"
+                else:
+                    new_filename = f"{time_str}_{role}"
             else:
-                new_filename = f"{time_str}_{role}.jpg"
+                if keep_original_filename == 'yes':
+                    new_filename = f"{time_str}_{role}_{converted_path.name}.webp"
+                else:
+                    new_filename = f"{time_str}_{role}.webp"
             
             new_path = output_folder / new_filename
             new_path = get_unique_filename(new_path)  # Ensure the filename is unique
             
+            if convert_to_jpeg == 'yes' and converted:
+                converted_path.rename(new_path)  # Move and rename the file
+                update_exif(new_path, taken_at)  # Update EXIF data if conversion took place
+            else:
+                shutil.copy2(path, new_path) # Copy to new path
+
             # Create merged images if user chose 'yes'
             if create_merged_images == 'yes':
                 #Create output folder if it doesn't exist
                 output_folder_merged.mkdir(parents=True, exist_ok=True)
 
                 # Construct the new file name for the combined image
-                combined_filename = taken_at.strftime("%Y-%m-%d_") + "combined_" + os.path.basename(primary_path)
+                combined_filename = taken_at.strftime("%Y-%m-%dT%H-%M-%S") + "_combined_" + os.path.basename(primary_path)
                 combined_image = merge_images_with_resizing(primary_path, secondary_path)
         
                 # Save the combined image
-                combined_image.save(os.path.join(output_folder_merged, combined_filename))
+                #combined_image.save(os.path.join(output_folder_merged, combined_filename))
+                
+                combined_image_path = output_folder_merged / (combined_filename)
+                combined_image.save(combined_image_path)
+                merged_files_count += 1
 
+                if convert_to_jpeg == 'yes':
+                    # Convert WebP to JPEG if necessary
+                    converted_path, converted = convert_webp_to_jpg(combined_image_path)
+                    if converted_path is None:
+                        logging.error(f"Failed to convert merged image to JPEG: {combined_image_path}")
+                    else:
+                        if converted:
+                            logging.info(f"Converted merged image to JPEG: {converted_path}")
 
-
-            converted_path.rename(new_path)  # Move and rename the file
-            update_exif(new_path, taken_at)  # Update EXIF data
-            
             logging.info(f"Processed {role} image: {new_path}")
             processed_files_count += 1
     
