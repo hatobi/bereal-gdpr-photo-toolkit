@@ -7,6 +7,7 @@ import piexif
 import os
 import time
 import shutil
+from iptcinfo3 import IPTCInfo
 
 # ANSI escape codes for text styling
 STYLING = {
@@ -43,6 +44,11 @@ processed_files_count = 0
 converted_files_count = 0
 combined_files_count = 0
 skipped_files_count = 0
+
+# Static IPTC tags
+source_app = "BeReal app"
+processing_tool = "github/bereal-gdpr-photo-toolkit"
+keywords = ["BeReal"]
 
 # Define lists to hold the paths of images to be combined
 primary_images = []
@@ -203,6 +209,32 @@ def update_exif(image_path, datetime_original, location=None, caption=None):
     except Exception as e:
         logging.error(f"Failed to update EXIF data for {image_path}: {e}")
 
+# Function to update IPTC information
+def update_iptc(image_path, caption):
+    try:
+        # Load the IPTC data from the image
+        info = IPTCInfo(image_path, force=True)  # Use force=True to create IPTC data if it doesn't exist
+        
+        # Check for errors (known issue with iptcinfo3 creating _markers attribute error)
+        if not hasattr(info, '_markers'):
+            info._markers = []
+        
+        # Update the "Caption-Abstract" field
+        if caption:
+            info['caption/abstract'] = caption
+            logging.info(f"Caption added to converted image.")
+
+        # Add static IPTC tags and keywords
+        info['source'] = source_app
+        info['originating program'] = processing_tool
+
+        # Save the changes back to the image
+        info.save_as(image_path)
+        logging.info(f"Updated IPTC Caption-Abstract for {image_path}")
+    except Exception as e:
+        logging.error(f"Failed to update IPTC Caption-Abstract for {image_path}: {e}")
+
+
 # Function to handle deduplication
 def get_unique_filename(path):
     if not path.exists():
@@ -263,9 +295,24 @@ def combine_images_with_resizing(primary_path, secondary_path):
 
     return combined_image
 
+# Function to clean up backup files left behind by iptcinfo3
+def remove_backup_files(directory):
+    # List all files in the given directory
+    for filename in os.listdir(directory):
+        # Check if the filename ends with '~'
+        if filename.endswith('~'):
+            # Construct the full path to the file
+            file_path = os.path.join(directory, filename)
+            try:
+                # Remove the file
+                os.remove(file_path)
+                print(f"Removed backup file: {file_path}")
+            except Exception as e:
+                print(f"Failed to remove backup file {file_path}: {e}")
+
 # Load the JSON file
 try:
-    with open('posts.json') as f:
+    with open('posts.json', encoding="utf8") as f:
         data = json.load(f)
 except FileNotFoundError:
     logging.error("JSON file not found. Please check the path.")
@@ -318,8 +365,13 @@ for entry in data:
             
             if convert_to_jpeg == 'yes' and converted:
                 converted_path.rename(new_path)  # Move and rename the file
-                update_exif(new_path, taken_at, location, caption)  # Update EXIF data if conversion took place
-                logging.info(f"Metadata added to converted image.")
+
+                # Update EXIF and IPTC data
+                update_exif(new_path, taken_at, location, caption)                
+                logging.info(f"EXIF data added to converted image.")
+
+                image_path_str = str(new_path)
+                update_iptc(image_path_str, caption)
             else:
                 shutil.copy2(path, new_path) # Copy to new path
 
@@ -367,14 +419,26 @@ if create_combined_images == 'yes':
         update_exif(combined_image_path, primary_taken_at, primary_location, primary_caption)
         logging.info(f"Metadata added to combined image.")
 
+        image_path_str = str(combined_image_path)
+        update_iptc(image_path_str, primary_caption)
+
         if convert_to_jpeg == 'yes':
             # Convert WebP to JPEG if necessary
             converted_path, converted = convert_webp_to_jpg(combined_image_path)
             update_exif(converted_path, primary_taken_at, primary_location, primary_caption)
             logging.info(f"Metadata added to converted image.")
+            image_path_str = str(combined_image_path)
+            update_iptc(image_path_str, primary_caption)
+
             if converted_path is None:
                 logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
         print("")
+
+# Clean up backup files
+print(STYLING['BOLD'] + "Removing backup files left behind by iptcinfo3" + STYLING["RESET"])
+remove_backup_files(output_folder)
+remove_backup_files(output_folder_combined)
+print("")
 
 # Summary
 logging.info(f"Finished processing.\nNumber of input-files: {number_of_files}\nTotal files processed: {processed_files_count}\nFiles converted: {converted_files_count}\nFiles skipped: {skipped_files_count}\nFiles combined: {combined_files_count}")
