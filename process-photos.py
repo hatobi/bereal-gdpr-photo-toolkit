@@ -48,7 +48,7 @@ skipped_files_count = 0
 # Static IPTC tags
 source_app = "BeReal app"
 processing_tool = "github/bereal-gdpr-photo-toolkit"
-keywords = ["BeReal"]
+#keywords = ["BeReal"]
 
 # Define lists to hold the paths of images to be combined
 primary_images = []
