@@ -77,7 +77,7 @@ print(f"Number of WebP-files in {photo_folder}: {number_of_files}")
 print(STYLING["BOLD"] + "\nDo you want to access advanced settings or run with default settings?" + STYLING["RESET"])
 print("Default settings are:\n"
 "1. Copied images are converted from WebP to JPEG\n"
-"2. Converted images' filenames contain the original filename\n"
+"2. Converted images' filenames do not contain the original filename\n"
 "3. Combined images are created on top of converted, singular images")
 advanced_settings = input("\nEnter " + STYLING["BOLD"] + "'yes'" + STYLING["RESET"] + "for advanced settings or press any key to continue with default settings: ").strip().lower()
 
@@ -86,7 +86,7 @@ if advanced_settings != 'yes':
 
 ## Default responses
 convert_to_jpeg = 'yes'
-keep_original_filename = 'yes'
+keep_original_filename = 'no'
 create_combined_images = 'yes'
 
 ## Proceed with advanced settings if chosen
