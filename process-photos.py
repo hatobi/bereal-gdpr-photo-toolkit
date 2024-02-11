@@ -283,8 +283,12 @@ if create_combined_images == 'yes':
     output_folder_combined.mkdir(parents=True, exist_ok=True)
 
     for primary_path, secondary_path in zip(primary_images, secondary_images):
+        # Extract timestamp from one of the images for consistency
+        timestamp = primary_path.stem.split('_')[0]
+        taken_at = datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%S")
+
         # Construct the new file name for the combined image
-        combined_filename = taken_at.strftime("%Y-%m-%dT%H-%M-%S") + "_combined.webp"# + os.path.basename(primary_path)
+        combined_filename = f"{timestamp}_combined.webp"
         combined_image = combine_images_with_resizing(primary_path, secondary_path)
         
         combined_image_path = output_folder_combined / (combined_filename)
