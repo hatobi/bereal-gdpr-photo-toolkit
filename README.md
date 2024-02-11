@@ -50,6 +50,20 @@ position = (55, 55) # margin to the borders
 ```
 Adjust values if you want a different look or place the image in a different corner.
 
+## Adding EXIF and IPTC tags
+The script adds additional tags to the converted images. Currently these tags are supported:
+- geolocation
+- caption
+
+On top of that, there is some static information added to the metadata, in order to help with referencing where the image came from. This information is:
+```python
+source = "BeReal app"
+originating program = "github/bereal-gdpr-photo-toolkit"
+```
+
+When opening the image, this static information can look like this:
+![](images/screenshot_iptc.png)
+
 ## Advanced settings
 
 By default, the script converts images to JPEG, drops the original filenames from the converted filenames and creates the combined images. Users have the ability to customize how the script behaves through a series of prompts:
