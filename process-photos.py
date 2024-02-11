@@ -45,6 +45,10 @@ converted_files_count = 0
 combined_files_count = 0
 skipped_files_count = 0
 
+# Define lists to hold the paths of images to be combined
+primary_images = []
+secondary_images = []
+
 # Define paths using pathlib
 photo_folder = Path('Photos/post/')
 output_folder = Path('Photos/post/__processed')
@@ -76,6 +80,9 @@ print("Default settings are:\n"
 "2. Converted images' filenames contain the original filename\n"
 "3. Combined images are created on top of converted, singular images")
 advanced_settings = input("\nEnter " + STYLING["BOLD"] + "'yes'" + STYLING["RESET"] + "for advanced settings or press any key to continue with default settings: ").strip().lower()
+
+if advanced_settings != 'yes':
+    print("Continuing with default settings.\n")
 
 ## Default responses
 convert_to_jpeg = 'yes'
@@ -223,6 +230,7 @@ for entry in data:
         taken_at = datetime.strptime(entry['takenAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
         
         for path, role in [(primary_path, 'primary'), (secondary_path, 'secondary')]:
+            logging.info(f"Found image: {path}")
             # Check if conversion to JPEG is enabled by the user
             if convert_to_jpeg == 'yes':
                 # Convert WebP to JPEG if necessary
@@ -255,36 +263,39 @@ for entry in data:
             else:
                 shutil.copy2(path, new_path) # Copy to new path
 
-            # Create combined images if user chose 'yes'
-            if create_combined_images == 'yes':
-                #Create output folder if it doesn't exist
-                output_folder_combined.mkdir(parents=True, exist_ok=True)
-
-                # Construct the new file name for the combined image
-                combined_filename = taken_at.strftime("%Y-%m-%dT%H-%M-%S") + "_combined_" + os.path.basename(primary_path)
-                combined_image = combine_images_with_resizing(primary_path, secondary_path)
-        
-                # Save the combined image
-                #combined_image.save(os.path.join(output_folder_combined, combined_filename))
-                
-                combined_image_path = output_folder_combined / (combined_filename)
-                combined_image.save(combined_image_path)
-                combined_files_count += 1
-
-                if convert_to_jpeg == 'yes':
-                    # Convert WebP to JPEG if necessary
-                    converted_path, converted = convert_webp_to_jpg(combined_image_path)
-                    if converted_path is None:
-                        logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
-                    else:
-                        if converted:
-                            logging.info(f"Converted combined image to JPEG: {converted_path}")
+            if role == 'primary':
+                primary_images.append(new_path)
+            else:
+                secondary_images.append(new_path)
 
             logging.info(f"Processed {role} image: {new_path}")
             processed_files_count += 1
-    
+            print("")
     except Exception as e:
         logging.error(f"Error processing entry {entry}: {e}")
+
+# Create combined images if user chose 'yes'
+if create_combined_images == 'yes':
+    #Create output folder if it doesn't exist
+    output_folder_combined.mkdir(parents=True, exist_ok=True)
+
+    for primary_path, secondary_path in zip(primary_images, secondary_images):
+        # Construct the new file name for the combined image
+        combined_filename = taken_at.strftime("%Y-%m-%dT%H-%M-%S") + "_combined.webp"# + os.path.basename(primary_path)
+        combined_image = combine_images_with_resizing(primary_path, secondary_path)
+        
+        combined_image_path = output_folder_combined / (combined_filename)
+        combined_image.save(combined_image_path, 'JPEG')
+        combined_files_count += 1
+
+        logging.info(f"Combined image saved: {combined_image_path}")
+
+        if convert_to_jpeg == 'yes':
+            # Convert WebP to JPEG if necessary
+            converted_path, converted = convert_webp_to_jpg(combined_image_path)
+            if converted_path is None:
+                logging.error(f"Failed to convert combined image to JPEG: {combined_image_path}")
+        print("")
 
 # Summary
 logging.info(f"Finished processing.\nTotal files processed: {processed_files_count}\nFiles converted: {converted_files_count}\nFiles skipped: {skipped_files_count}\nFiles combined: {combined_files_count}")
