@@ -12,11 +12,12 @@ To run this script, you'll need Python installed on your system along with the f
 
 - Pillow (PIL Fork)
 - piexif
+- iptcinfo3
 
 You can install these libraries using pip:
 
 ```console
-pip install Pillow piexif
+pip install Pillow piexif iptcinfo3
 ```
 
 
@@ -48,6 +49,20 @@ outline_size = 7 # thickness of the black outline
 position = (55, 55) # margin to the borders
 ```
 Adjust values if you want a different look or place the image in a different corner.
+
+## Adding EXIF and IPTC tags
+The script adds additional tags to the converted images. Currently these tags are supported:
+- geolocation
+- caption
+
+On top of that, there is some static information added to the metadata, in order to help with referencing where the image came from. This information is:
+```python
+source = "BeReal app"
+originating program = "github/bereal-gdpr-photo-toolkit"
+```
+
+When opening the image, this static information can look like this:
+![](images/screenshot_iptc.png)
 
 ## Advanced settings
 
