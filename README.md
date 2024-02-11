@@ -12,11 +12,12 @@ To run this script, you'll need Python installed on your system along with the f
 
 - Pillow (PIL Fork)
 - piexif
+- iptcinfo3
 
 You can install these libraries using pip:
 
 ```console
-pip install Pillow piexif
+pip install Pillow piexif iptcinfo3
 ```
 
 
