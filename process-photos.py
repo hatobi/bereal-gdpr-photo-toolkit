@@ -56,6 +56,7 @@ secondary_images = []
 
 # Define paths using pathlib
 photo_folder = Path('Photos/post/')
+bereal_folder = Path('Photos/bereal')
 output_folder = Path('Photos/post/__processed')
 output_folder_combined = Path('Photos/post/__combined')
 output_folder.mkdir(parents=True, exist_ok=True)  # Create the output folder if it doesn't exist
@@ -63,6 +64,8 @@ output_folder.mkdir(parents=True, exist_ok=True)  # Create the output folder if 
 # Print the paths
 print(STYLING["BOLD"] + "\nThe following paths are set for the input and output files:" + STYLING["RESET"])
 print(f"Photo folder: {photo_folder}")
+if os.path.exists(bereal_folder):
+    print(f"Older photo folder: {bereal_folder}")
 print(f"Output folder for singular images: {output_folder}")
 print(f"Output folder for combined images: {output_folder_combined}")
 #print("\nDeduplication is active. No files will be overwritten or deleted.")
@@ -76,6 +79,10 @@ def count_files_in_folder(folder_path):
 
 number_of_files = count_files_in_folder(photo_folder)
 print(f"Number of WebP-files in {photo_folder}: {number_of_files}")
+
+if os.path.exists(bereal_folder):
+    number_of_files = count_files_in_folder(bereal_folder)
+    print(f"Number of (older) WebP-files in {bereal_folder}: {number_of_files}")
 
 # Settings
 ## Initial choice for accessing advanced settings
@@ -327,6 +334,10 @@ for entry in data:
         
         primary_path = photo_folder / primary_filename
         secondary_path = photo_folder / secondary_filename
+
+        if not os.path.exists(primary_path):
+            primary_path = bereal_folder / primary_filename
+            secondary_path = bereal_folder / secondary_filename
 
         taken_at = datetime.strptime(entry['takenAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
         location = entry.get('location')  # This will be None if 'location' is not present
