@@ -448,7 +448,7 @@ if create_combined_images == 'yes':
 # Clean up backup files
 print(STYLING['BOLD'] + "Removing backup files left behind by iptcinfo3" + STYLING["RESET"])
 remove_backup_files(output_folder)
-remove_backup_files(output_folder_combined)
+if create_combined_images == 'yes': remove_backup_files(output_folder_combined)
 print("")
 
 # Summary
